@@ -5,6 +5,8 @@
 //  Created by Studentadm on 1/18/22.
 //
 
+
+// commented out lines 48, 49, 50 and 108, 109, 110 for initial instruction without selecting the category.
 import Foundation
 
 func getDirection(angl : Double) -> String{
@@ -45,9 +47,9 @@ func turnTowards(from : String, to : String) -> String{
     
     var user = 1
     let userProfile = UserDefaults.standard.value(forKey: "checkmarks") as? [String:Int]
-    if !userProfile!.isEmpty{
-        user = userProfile!["User Category"]!
-    }
+//    if !userProfile!.isEmpty{
+//        user = userProfile!["User Category"]!
+//    }
     // user = 1 or 2 is a sighted user and user = 0 is blind
     if user == 1 || user == 2{
         switch(sub){
@@ -105,9 +107,9 @@ func distCalculator (cost : Int) -> String{
     }
     var user = 1
     let userProfile = UserDefaults.standard.value(forKey: "checkmarks") as? [String:Int]
-    if !userProfile!.isEmpty{
-        user = userProfile!["User Category"]!
-    }
+//    if userProfile.isEmpty{
+//        user = userProfile!["User Category"]!
+//    }
     
     if unitOfMeasurement == 0 && (user == 1 || user == 2){
         //meters

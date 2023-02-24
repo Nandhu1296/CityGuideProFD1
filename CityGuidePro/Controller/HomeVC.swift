@@ -149,7 +149,7 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
             //            print("Direction: " + String(angle))
             //            print("Direction: " + String(degrees))
             //            print("Direction: " + String(rad))
-//            self.compassImage.transform = CGAffineTransform(rotationAngle: angle)
+            self.compassImage.transform = CGAffineTransform(rotationAngle: angle)
         }
     }
     
