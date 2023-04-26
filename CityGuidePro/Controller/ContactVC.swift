@@ -232,6 +232,7 @@ class ContactVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesize
         }
         
         if !muteFlag{
+            //to add speech transcription for enhancing functionality
             narator.speak(utterance)
         }
         else{
