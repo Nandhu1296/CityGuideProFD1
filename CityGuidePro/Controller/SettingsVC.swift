@@ -6,8 +6,24 @@
 //
 
 import UIKit
+import AVFoundation
+import CoreHaptics
+import Speech
 
-class SettingsVC: UIViewController {
+
+
+class SettingsVC: UIViewController, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate {
+    
+    let narator = AVSpeechSynthesizer()
+    var speechRecognizer = SpeechRecognizer()
+    var speechFlag = false
+    var muteFlag = false
+    var explorationFlag = true
+    var voiceSearchFlag = false
+
+
+
+
     
     @IBOutlet weak var tableView: UITableView!{
         didSet {
@@ -68,6 +84,11 @@ class SettingsVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Settings"
+//        let sp1=HomeVC()
+        
+//        speakThis(sentence: "Settings")
+//        speakThis(sentence: "Settings")
+
         tabBarController?.tabBar.barTintColor = .black
         overrideUserInterfaceStyle = .light
         setupTableView()
@@ -169,6 +190,52 @@ extension SettingsVC: UITableViewDelegate, UITableViewDataSource {
         }
     }
     
+    func speakThis(sentence : String){
+        let audioSession = AVAudioSession.sharedInstance()
+        do
+        {
+            try audioSession.setCategory(AVAudioSession.Category.playAndRecord)
+            try audioSession.setMode(AVAudioSession.Mode.default)
+            //try audioSession.setMode(AVAudioSessionModeMeasurement)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+        }
+        catch
+        {
+            print("audioSession properties weren't set because of an error.")
+        }
+        
+        var user = 1
+        let userProfile = UserDefaults.standard.value(forKey: "checkmarks") as? [String:Int]
+        if userProfile == nil{
+            user = 0
+        }
+        else if !userProfile!.isEmpty{
+            user = userProfile!["User Category"]!
+        }
+        
+        let utterance = AVSpeechUtterance(string: sentence)
+        if user == 0{
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.7
+        }
+        else{
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.55
+        }
+        
+        if(narator.isSpeaking && explorationFlag && voiceSearchFlag){
+            narator.stopSpeaking(at: .immediate)
+        }
+        
+        if !muteFlag{
+            narator.speak(utterance)
+        }
+        else{
+            narator.stopSpeaking(at: .immediate)
+        }
+    }
+    
     // Initialize and configure the cell
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if settingsScreen {
@@ -192,6 +259,8 @@ extension SettingsVC: UITableViewDelegate, UITableViewDataSource {
             return cell
         } else {
             if indexPath.section == 0 {
+                
+
                 let cell = tableView.dequeueReusableCell(withIdentifier: cellIndentifer, for: indexPath) as! ProfileSettingsTableViewCell
                 cell.contentView.layer.cornerRadius = 20
                 cell.separatorInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: .greatestFiniteMagnitude)
@@ -227,7 +296,7 @@ extension SettingsVC: UITableViewDelegate, UITableViewDataSource {
             let selectedItem = tableView.cellForRow(at: indexPath)?.textLabel?.text
             let table = self.storyboard?.instantiateViewController(identifier: "SettingsVC") as! SettingsVC
             table.settingsScreen = true
-            let userCategory = ["Difficulty Seeing" , "Genral User" , "Difficulty Moving"]
+            let userCategory = ["Difficulty Seeing" , "General User" , "Difficulty Moving"]
             let refDistUnit = ["Distance", "Number of Steps"]
             let distUnit = ["Meters" , "Feet"]
             let oriPref = ["Left, Right Method", "Clock Orientation Method"]
@@ -302,19 +371,20 @@ extension SettingsVC: UITableViewDelegate, UITableViewDataSource {
 
         } else {
             if indexPath.section == 0 {
-                print("--- selected profile settings")
                 
 //                let next:ProfileSettingsVC = ProfileSettingsVC()
 //                self.present(next, animated: true, completion: nil)
                 
                 let next:ProfileVC = storyboard?.instantiateViewController(withIdentifier: "ProfileVC") as! ProfileVC
                 self.navigationController?.pushViewController(next, animated: true)
+                speakThis(sentence: "Profile Settings")
+
             } else {
                 tableView.deselectRow(at: indexPath, animated: true)
                 let selectedItem = tableView.cellForRow(at: indexPath)?.textLabel?.text
                 let table = self.storyboard?.instantiateViewController(identifier: "SettingsVC") as! SettingsVC
                 table.settingsScreen = true
-                let userCategory = ["Difficulty Seeing" , "Genral User" , "Difficulty Moving"]
+                let userCategory = ["Difficulty Seeing" , "General User" , "Difficulty Moving"]
                 let refDistUnit = ["Distance", "Number of Steps"]
                 let distUnit = ["Meters" , "Feet"]
                 let oriPref = ["Left, Right Method", "Clock Orientation Method"]
@@ -345,39 +415,63 @@ extension SettingsVC: UITableViewDelegate, UITableViewDataSource {
                 switch selectedItem {
                 case "User Category":
                     table.items = userCategory
+                    speakThis(sentence: "User category")
+
                     break
                 case "Route Preview":
                     table.items = testCell
+                    speakThis(sentence: "To enamble route preview")
+
                      break
                 case "Distance Unit":
                     table.items = distUnit
+                    speakThis(sentence: "Normal distance unit")
+
                     break
                 case "Referece Distance Unit":
                     table.items = refDistUnit
+                    speakThis(sentence: "Reference distance unit")
+
                     break
                 case "Orientation Preference":
                     table.items = oriPref
+                    speakThis(sentence: "Orientation preferance")
+
                     break
                 case "Monitoring":
                     table.items = testCell
+                    speakThis(sentence: "Monitoring option")
+
                     break
                 case "Step Size (ft)":
                     callAlert(selectedItem!, itemDiscriptions[6], toString)
+                    speakThis(sentence: "Step size in feet")
+
                     break
                 case "Weighted Moving Average":
                     callAlert(selectedItem!, itemDiscriptions[7], toString)
+                    speakThis(sentence: "change the weighted moving average")
+
                     break
                 case "Set Threshold":
                     callAlert(selectedItem!, itemDiscriptions[8], toString)
+                    speakThis(sentence: "to set threshold")
+
                     break
                 case "Timer (Seconds)":
                     callAlert(selectedItem!, itemDiscriptions[9], toString)
+                    speakThis(sentence: "Timer in seconds")
+
                     break
                 case "Searching Radius (Meters)":
                     callAlert(selectedItem!, itemDiscriptions[10], toString)
+                    speakThis(sentence: "Searching radius in meters")
+
                     break
                 case "GPS Accuracy":
                     callAlert(selectedItem!, itemDiscriptions[11], toString)
+                    speakThis(sentence: "GPS Accuracy")
+
                     break
                 default:
                     break

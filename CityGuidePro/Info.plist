@@ -35,6 +35,8 @@
 		<dict>
 			<key>http://wh-308-3922mm.dyn.wichita.edu:5000</key>
 			<string></string>
+			<key>https://cityguide-wsu.herokuapp.com/</key>
+			<string></string>
 		</dict>
 	</dict>
 	<key>LSRequiresIPhoneOS</key>

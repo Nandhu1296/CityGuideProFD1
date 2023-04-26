@@ -10,8 +10,9 @@ import CoreLocation
 import AVFoundation
 import CoreHaptics
 import Speech
+import MessageUI
 
-class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, BeaconScannerDelegate {
+class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate, BeaconScannerDelegate, MFMailComposeViewControllerDelegate, UITabBarControllerDelegate {
     
     @IBOutlet weak var naratorMute: UIButton!
     @IBOutlet weak var recButton: UIButton!
@@ -39,6 +40,9 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     var atBeaconInstr : [Int : String] = [:]
     var poiAtCurrentNode : [Int:String] = [:]
     let srVC = SearchResultsVC()
+    
+    let erVC = ExitsViewController()
+
     let narator = AVSpeechSynthesizer()
     var currentlyAt = -1
     var engine: CHHapticEngine?
@@ -64,7 +68,6 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     var searchListResetFlag = false
     
     
-    
     @objc func buttonDown(_ sender: UIButton) {     // May not be in use
         singleFire(check: nil)
     }
@@ -75,8 +78,17 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        firstOpen()
+        
+
         // Do any additional setup after loading the view.
         narator.delegate = self
+//        let hp1=HomeVC()
+        
+        speakThis(sentence: "Home")
+        if let tabBarController = self.tabBarController {
+                    tabBarController.delegate = self
+                }
         if let usernameStr = userDefaults.string(forKey: "myUserNameKey") {
             userNameLabel.text = "Hello \(usernameStr)!"
         }
@@ -120,6 +132,9 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
         self.naratorMute.tintColor = .black
         self.recButton.tintColor = .black
         self.stopBtn.tintColor = .black
+        
+        
+        
     }
     
     override var canBecomeFirstResponder: Bool{
@@ -131,7 +146,24 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
             doubleTapped()
         }
     }
-    
+    func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+           
+           let homeVC = HomeVC()
+           let selectedIndex = tabBarController.viewControllers?.firstIndex(of: viewController)
+        
+        if(selectedIndex == 0){
+            speakThis(sentence: "Home")
+        }else if(selectedIndex == 1){
+            speakThis(sentence: "Contact")
+        }else{
+            speakThis(sentence: "Settings")
+        }
+                   
+
+               // Handle the case where the view controller isn't found
+           
+          
+       }
     override func viewWillAppear(_ animated: Bool) {
         if let usernameStr = userDefaults.string(forKey: "myUserNameKey") {
             userNameLabel.text = "Hello, \(usernameStr)!"
@@ -149,7 +181,7 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
             //            print("Direction: " + String(angle))
             //            print("Direction: " + String(degrees))
             //            print("Direction: " + String(rad))
-            self.compassImage.transform = CGAffineTransform(rotationAngle: angle)
+//            self.compassImage.transform = CGAffineTransform(rotationAngle: angle)
         }
     }
     
@@ -190,6 +222,12 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     //        beaconManager?.startRangingBeacons(satisfying: beconIdConstraint)
     //    }
     //
+    func firstOpen() {
+        let vc = self.storyboard?.instantiateViewController(identifier: "firstScreenVC") as! firstScreenVC
+        vc.modalTransitionStyle = .crossDissolve
+        vc.modalPresentationStyle = .overCurrentContext
+        self.present(vc, animated: true, completion: nil)
+    }
     
     func didFindBeacon(beaconScanner: BeaconScanner, beaconInfo: BeaconInfo) {
         //NSLog("FIND: %@", beaconInfo.description)
@@ -342,6 +380,11 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
         if(groupID == -1){
             newGroupNoticed = true
         }
+        userDefaults.set(CURRENT_NODE, forKey: "CURRENT_NODE_key")
+        userDefaults.set(groupID, forKey: "groupID_key")
+
+
+        
         print("Closest Beacon : " + String(CURRENT_NODE) + " Rssi : " + String(CLOSEST_RSSI) + " Group : " + String(groupID))
         
         for i in dArray{    // to match groupid and floorplan
@@ -538,6 +581,8 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     }
     
     @IBAction func didTapStop(_ sender: Any) {          // For the X icon. When tapped exit navigation mode
+//        speakThis(sentence: "Stoping routing")
+
         indoorWayFindingFlag = false
         if UIDevice.current.userInterfaceIdiom == .phone{
             hapticVibration(atDestination: true)
@@ -548,6 +593,116 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
         stopBtn.isHidden = true
         speakThis(sentence: "Routing stopped. Switching to exploration mode.")
     }
+    
+    
+    
+//    override func didReceiveMemoryWarning() {
+//           super.didReceiveMemoryWarning()
+//           // Dispose of any resources that can be recreated.
+//       }
+
+       @IBAction func sendEmail(_ sender: Any) {
+           
+           speakThis(sentence: "Feedback")
+           
+//           let mailComposeViewController = configureMailController()
+//           if MFMailComposeViewController.canSendMail() {
+//               self.present(mailComposeViewController, animated: true, completion: nil)
+//           } else {
+//               showMailError()
+//           }
+           
+           
+           let alertController = UIAlertController(title: "                         ", message: "Please give us a rating", preferredStyle: .alert)
+
+                   // Create the rating control
+                   let ratingControl = RatingControl(frame: CGRect(x: 0, y: 0, width: 200, height: 50))
+                   alertController.view.addSubview(ratingControl)
+
+                   // Add the "Cancel" action
+                   alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+
+                   // Add the "Submit" action
+                   alertController.addAction(UIAlertAction(title: "Submit", style: .default, handler: { _ in
+                       // User clicked the "Submit" button, show the email composer
+                       self.showEmailComposer(withRating: ratingControl.rating)
+                   }))
+
+                   // Show the alert controller
+                   self.present(alertController, animated: true, completion: nil)
+
+
+       }
+    
+    func showEmailComposer(withRating rating: Int) {
+            // Create and configure the email composer
+            let composer = MFMailComposeViewController()
+            composer.setToRecipients(["wsuaccesslab@gmail.com"])
+            composer.setSubject("App Rating")
+            let CURRENT_NODE_key = userDefaults.string(forKey: "CURRENT_NODE_key")
+        
+            let groupID_key = userDefaults.string(forKey: "groupID_key")
+
+        if(CURRENT_NODE_key! == "-1" && groupID_key! == "-1"){
+            
+            composer.setMessageBody("Hello team, \n I gave your app \(rating) stars. \n Currently, not near any beacon. \n My further feedback is..... ", isHTML: false)
+            
+            // Show the email composer
+            self.present(composer, animated: true, completion: nil)
+            
+        }else{
+            
+            composer.setMessageBody("Hello team, \n I gave your app \(rating) stars . \n Currently, standing near beacon \(CURRENT_NODE_key!) now and its groupID is \(groupID_key!) . \n My further feedback is..... ", isHTML: false)
+            
+            // Show the email composer
+            self.present(composer, animated: true, completion: nil)
+        }
+        
+            
+        }
+       
+//    func configureMailController() -> MFMailComposeViewController {
+//        let mailComposerVC = MFMailComposeViewController()
+//        mailComposerVC.mailComposeDelegate = self
+//
+//        mailComposerVC.setToRecipients(["wsuaccesslab@gmail.com"])
+//        mailComposerVC.setSubject("Hello")
+//        mailComposerVC.setMessageBody("How are you doing?", isHTML: false)
+//
+//        return mailComposerVC
+//    }
+//
+//    func showMailError() {
+//        let sendMailErrorAlert = UIAlertController(title: "Could not send email", message: "Your device could not send email", preferredStyle: .alert)
+//        let dismiss = UIAlertAction(title: "Ok", style: .default, handler: nil)
+//        sendMailErrorAlert.addAction(dismiss)
+//        self.present(sendMailErrorAlert, animated: true, completion: nil)
+//    }
+//
+//    func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+//        controller.dismiss(animated: true, completion: nil)
+//    }
+//
+// func sendEmail(recipient: [String], text: String)
+//     {
+//         if MFMailComposeViewController.canSendMail()
+//         {
+//             let mail = MFMailComposeViewController()
+//             mail.mailComposeDelegate = self
+//             mail.setToRecipients(recipient)
+//             mail.setMessageBody(text, isHTML: false)
+//
+//             present(mail, animated: true, completion: nil)
+//         }
+//         else
+//         {
+//             //failure
+//         }
+//     }
+        
+//        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+//            controller.dismiss(animated: true, completion: nil)
+//        }
     @IBAction func didTapSettingsButton() {      // button for settings
         let tvc = self.storyboard?.instantiateViewController(identifier: "SettingsVC") as! SettingsVC
         tvc.items = [
@@ -572,6 +727,8 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     
     
     @IBAction func searchTapped(_ sender: Any) {        // Magnigfying glass button method
+        speakThis(sentence: "Search for destination")
+
         for i in dArray{
             if i["beacon_id"] as! Int == CURRENT_NODE{
                 if let checkerForHub = i["locname"] as? String{
@@ -584,6 +741,23 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
             }
         }
         navigationController?.pushViewController(srVC, animated: true)
+    }
+    
+    @IBAction func exitButtonTapped(_ sender: Any) {        // Magnigfying glass button method
+        speakThis(sentence: "Check Exits")
+
+        for i in dArray{
+            if i["beacon_id"] as! Int == CURRENT_NODE{
+                if let checkerForHub = i["locname"] as? String{
+                    if checkerForHub.contains("Hub "){
+                        let n = i["node"] as! Int
+                        erVC.setCurrentNode(node: n)
+                        break
+                    }
+                }
+            }
+        }
+        navigationController?.pushViewController(erVC, animated: true)
     }
     
     func explorationMode(currentNode : Int){
@@ -665,18 +839,44 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
                                 if atBeaconInstr[n]!.contains("destination."){
                                     indoorWayFindingFlag = false
                                     print("Near Destination")
+
                                     if UIDevice.current.userInterfaceIdiom == .phone{
                                         hapticVibration(atDestination: true)
                                     }
                                     explorationFlag = true
                                     speechFlag = true
                                     recursionFlag = false
-                                    exitToExplore = "Switching back to Exploration Mode."
+                                    exitToExplore = "Switching back to Exploration Mode. Please leave a feedback."
+                                    
+
+                                    // create an instance of UIAlertController
+//                                    let alert = UIAlertController(title: "Confirmation", message: "do you want to give a feedback?", preferredStyle: .alert)
+//
+//                                    // create actions for the Yes and No buttons
+//                                    let yesAction = UIAlertAction(title: "Yes", style: .default) { _ in
+//                                        // handle "Yes" action here
+//                                    }
+//
+//                                    let noAction = UIAlertAction(title: "No", style: .cancel) { _ in
+//                                        // handle "No" action here
+//                                    }
+//
+//                                    // add the actions to the alert
+//                                    alert.addAction(yesAction)
+//                                    alert.addAction(noAction)
+//
+//                                    // present the alert
+//                                    present(alert, animated: true, completion: nil)
+                                    
+                                    
+                                    
+                                    
                                     DispatchQueue.main.async {
                                         if !self.stopBtn.isHidden{
                                             self.stopBtn.isHidden = true
                                         }
                                     }
+
                                 }
                                 if(narator.isSpeaking && indoorWayFindingFlag && !muteFlag){
                                     if shortestPath.contains(n){
@@ -1002,6 +1202,8 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
     
     @IBAction func switchMuteTo(_ sender: Any) {
         if(!muteFlag){
+            speakThis(sentence: "Mute ON")
+
             self.naratorMute.setImage(UIImage(systemName: "volume.slash.fill"), for: .normal)
             if narator.isSpeaking{
                 narator.stopSpeaking(at: .immediate)
@@ -1010,6 +1212,8 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
             self.naratorMute.accessibilityLabel = "Unmute button"
         }
         else{
+            speakThis(sentence: "Mute OFF")
+
             self.naratorMute.setImage(UIImage(systemName: "volume.fill"), for: .normal)
             if narator.isSpeaking{
                 narator.stopSpeaking(at: .immediate)
@@ -1045,3 +1249,30 @@ class HomeVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDe
         }
     }
 }
+
+
+//extension HomeVC: MFMailComposeViewController{
+//    func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+//
+//           if let _ = error {
+//               //Show error alert
+//               controller.dismiss(animated: true)
+//               return
+//           }
+//
+//           switch result {
+//           case .cancelled:
+//               print("Cancelled")
+//           case .failed:
+//               print("Failed to send")
+//           case .saved:
+//               print("Saved")
+//           case .sent:
+//               print("Email Sent")
+//           @unknown default:
+//               break
+//           }
+//
+//           controller.dismiss(animated: true)
+//       }
+//}

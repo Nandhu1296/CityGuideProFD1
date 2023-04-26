@@ -83,7 +83,6 @@ final class CustomPopUpViewController: UIViewController {
             
             application.open(phoneCallURL, options: [:], completionHandler: nil)
         case .sendLocation:
-            print("value---\(lat)--\(long)")
             dismiss(animated: true, completion: nil)
         default:
             break
@@ -119,7 +118,6 @@ extension CustomPopUpViewController: CLLocationManagerDelegate {
         if let userLocation = locations.first {
             lat = userLocation.coordinate.latitude
             long = userLocation.coordinate.longitude
-//            print("\(lat)--\(long)")
         }
     }
 }

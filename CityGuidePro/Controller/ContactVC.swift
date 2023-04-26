@@ -10,12 +10,22 @@ import UIKit
 import Foundation
 
 import MapKit
+import AVFoundation
+import CoreHaptics
+import Speech
 import CoreLocation
 
 
-class ContactVC: UIViewController {
+class ContactVC: UIViewController, CLLocationManagerDelegate, AVSpeechSynthesizerDelegate, SFSpeechRecognizerDelegate {
     
     let locationManager = CLLocationManager()
+    
+    let narator = AVSpeechSynthesizer()
+    var speechRecognizer = SpeechRecognizer()
+    var speechFlag = false
+    var muteFlag = false
+    var explorationFlag = true
+    var voiceSearchFlag = false
 
     
     @IBOutlet weak var callView: CustomShadowView!
@@ -87,13 +97,26 @@ class ContactVC: UIViewController {
     @IBOutlet weak var ThirdRowVideo: UILabel!
     
     let userDefaults = UserDefaults.standard
-
+    
+   
+    
+    let BTNlocationManager = CLLocationManager()
+    
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         tabBarController?.tabBar.barTintColor = .black
         title = "Contact"
+//        let cp1=HomeVC()
+        
+//        speakThis(sentence: "Contact")
         setupUi()
+        BTNlocationManager.delegate = self
+
+        BTNlocationManager.requestWhenInUseAuthorization()
+
         //    shareLocationBtnOne.tag = 0
         
         
@@ -140,14 +163,82 @@ class ContactVC: UIViewController {
         
     }
     
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            BTNlocationManager.startUpdatingLocation()
+        case .denied, .restricted:
+            // Handle denied or restricted authorization
+            break
+        default:
+            break
+        }
+    }
+    
+    var latestLocation: CLLocation?
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let latestLocation = locations.last else {
+                    return
+                }
+                let latitude = latestLocation.coordinate.latitude
+                let longitude = latestLocation.coordinate.longitude
+                print("Latitude: \(latitude), Longitude: \(longitude)")    }
+    
     @IBAction func actionForCallBtn(_ sender: Any) {
         let vc = self.storyboard?.instantiateViewController(identifier: "CustomPopUpViewController") as! CustomPopUpViewController
         vc.customAlertScenario = .call911
         vc.modalTransitionStyle = .crossDissolve
         vc.modalPresentationStyle = .overCurrentContext
         self.present(vc, animated: true, completion: nil)
+        speakThis(sentence: "Call 911")
     }
-    
+    func speakThis(sentence : String){
+        let audioSession = AVAudioSession.sharedInstance()
+        do
+        {
+            try audioSession.setCategory(AVAudioSession.Category.playAndRecord)
+            try audioSession.setMode(AVAudioSession.Mode.default)
+            //try audioSession.setMode(AVAudioSessionModeMeasurement)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+        }
+        catch
+        {
+            print("audioSession properties weren't set because of an error.")
+        }
+        
+        var user = 1
+        let userProfile = UserDefaults.standard.value(forKey: "checkmarks") as? [String:Int]
+        if userProfile == nil{
+            user = 0
+        }
+        else if !userProfile!.isEmpty{
+            user = userProfile!["User Category"]!
+        }
+        
+        let utterance = AVSpeechUtterance(string: sentence)
+        if user == 0{
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.7
+        }
+        else{
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.55
+        }
+        
+        if(narator.isSpeaking && explorationFlag && voiceSearchFlag){
+            narator.stopSpeaking(at: .immediate)
+        }
+        
+        if !muteFlag{
+            narator.speak(utterance)
+        }
+        else{
+            narator.stopSpeaking(at: .immediate)
+        }
+    }
+
     
     @IBAction func actionForSendLocationBtn(_ sender: Any) {
         let vc = self.storyboard?.instantiateViewController(identifier: "CustomPopUpViewController") as! CustomPopUpViewController
@@ -155,27 +246,35 @@ class ContactVC: UIViewController {
         vc.modalTransitionStyle = .crossDissolve
         vc.modalPresentationStyle = .overCurrentContext
         self.present(vc, animated: true, completion: nil)
+        speakThis(sentence: "Send location to all users?")
+
     }
     
     @IBAction func actionForEditContact(_ sender: UIButton) {
         if sender.tag == 1 {
-            print("111111")
             let vc = self.storyboard?.instantiateViewController(identifier: "EnterContactsVC1") as! EnterContactsVC1
             vc.modalTransitionStyle = .crossDissolve
             vc.modalPresentationStyle = .overCurrentContext
             self.present(vc, animated: true, completion: nil)
+            speakThis(sentence: "Modify Emergency Contact")
+
+            
+//
+            
         } else if sender.tag == 2 {
-            print("22222")
             let vc = self.storyboard?.instantiateViewController(identifier: "EnterContactsVC2") as! EnterContactsVC2
             vc.modalTransitionStyle = .crossDissolve
             vc.modalPresentationStyle = .overCurrentContext
             self.present(vc, animated: true, completion: nil)
+            speakThis(sentence: "Modify Volunteer Contact")
+
         } else if sender.tag == 3 {
-            print("33333")
             let vc = self.storyboard?.instantiateViewController(identifier: "EnterContactsVC3") as! EnterContactsVC3
             vc.modalTransitionStyle = .crossDissolve
             vc.modalPresentationStyle = .overCurrentContext
             self.present(vc, animated: true, completion: nil)
+            speakThis(sentence: "Modify Other Contacts")
+
         }
     }
     
@@ -189,36 +288,36 @@ class ContactVC: UIViewController {
 
         let usernameStr3 = userDefaults.string(forKey: "myContactUserNameKey3")
 
-        ContactUserNameLabel1.text = "Call \(usernameStr1 ?? "NoName")"
+//        ContactUserNameLabel1.text = "Call \(usernameStr1 ?? "NoName")"
         
-        Contact1stRowNameLabel.text = " \(usernameStr1 ?? "NoName")"
+//        Contact1stRowNameLabel.text = " \(usernameStr1 ?? "NoName")"
         
-        Contact1stRowMessage.text = "Message \(usernameStr1 ?? "NoName")"
-
-        Contact1stRowVideo.text = "Video \(usernameStr1 ?? "NoName")"
-        
-        
-        
-        
-        ContactUserNameLabel2.text = "Call \(usernameStr2 ?? "NoName")"
-        
-        MsgIn2ndRow.text = "Message \(usernameStr2 ?? "NoName")"
-        
-        VideoIn2ndRow.text = "Video \(usernameStr2 ?? "NoName")"
-        
-
+//        Contact1stRowMessage.text = "Message \(usernameStr1 ?? "NoName")"
+//
+//        Contact1stRowVideo.text = "Video \(usernameStr1 ?? "NoName")"
         
         
         
-
-        ContactUserNameLabel3.text = "Call \(usernameStr3 ?? "NoName")"
         
-        ThirdRowVideo.text = "Call \(usernameStr3 ?? "NoName")"
+//        ContactUserNameLabel2.text = "Call \(usernameStr2 ?? "NoName")"
+        
+//        MsgIn2ndRow.text = "Message \(usernameStr2 ?? "NoName")"
+//
+//        VideoIn2ndRow.text = "Video \(usernameStr2 ?? "NoName")"
+//
 
         
-        ThirdRowMsg.text = "Call \(usernameStr3 ?? "NoName")"
+        
+        
 
-        ThirdRowTopLabel.text = " \(usernameStr3 ?? "NoName")"
+//        ContactUserNameLabel3.text = "Call \(usernameStr3 ?? "NoName")"
+        
+//        ThirdRowVideo.text = "Video \(usernameStr3 ?? "NoName")"
+
+        
+//        ThirdRowMsg.text = "Message \(usernameStr3 ?? "NoName")"
+//
+//        ThirdRowTopLabel.text = " \(usernameStr3 ?? "NoName")"
 
         
        
@@ -301,19 +400,18 @@ class ContactVC: UIViewController {
     
     @IBAction func ActionForCallUserBtn(_ sender: UIButton) {
         if sender.tag == 1 {
-            print("Call--111111")
+            
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey1")
             
             let ss = "\(phoneNumber ?? "23232323")"
             
-            print(ss)
-            print(ss)
+           
 
-            print(type(of: ss))
 
             
-            
+            speakThis(sentence: "Call")
+
             if let phoneCallURL = URL(string: "tel://\(ss)") {
                 let application:UIApplication = UIApplication.shared
                 if (application.canOpenURL(phoneCallURL)) {
@@ -324,18 +422,16 @@ class ContactVC: UIViewController {
             
             
         } else if sender.tag == 2 {
-            print("Call--22222")
             
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey2")
             
             let ss = "\(phoneNumber ?? "23232323")"
             
-            print(ss)
-            
-            print(type(of: ss))
+         
 
-            
+            speakThis(sentence: "Call")
+
             
             if let phoneCallURL = URL(string: "tel://\(ss)") {
                 let application:UIApplication = UIApplication.shared
@@ -347,19 +443,17 @@ class ContactVC: UIViewController {
             
             
         } else if sender.tag == 3 {
-            print("Call--33333")
             
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey3")
             
             let ss = "\(phoneNumber ?? "23232323")"
             
-            print(ss)
             
-            print(type(of: ss))
 
             
-            
+            speakThis(sentence: "Call")
+
             if let phoneCallURL = URL(string: "tel://\(ss)") {
                 let application:UIApplication = UIApplication.shared
                 if (application.canOpenURL(phoneCallURL)) {
@@ -375,7 +469,6 @@ class ContactVC: UIViewController {
         if sender.tag == 1 {
             
             //
-            print("Message--111111")
             
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey1")
@@ -389,10 +482,10 @@ class ContactVC: UIViewController {
             
             
             
-            
+            speakThis(sentence: "message")
+
             
         } else if sender.tag == 2 {
-            print("Message22222")
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey2")
             
@@ -403,10 +496,10 @@ class ContactVC: UIViewController {
             UIApplication.shared.open(URL(string: strURL)!, options: [:], completionHandler: nil)
             
             
-            
+            speakThis(sentence: "message")
+
             
         } else if sender.tag == 3 {
-            print("Message33333")
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey3")
             
@@ -416,7 +509,8 @@ class ContactVC: UIViewController {
             let strURL = sms.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
             UIApplication.shared.open(URL(string: strURL)!, options: [:], completionHandler: nil)
             
-            
+            speakThis(sentence: "message")
+
             
             
         }
@@ -424,7 +518,6 @@ class ContactVC: UIViewController {
     
     @IBAction func actionForVideoBtn(_ sender: UIButton) {
         if sender.tag == 1 {
-            print("Video-111111")
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey1")
             
@@ -433,10 +526,10 @@ class ContactVC: UIViewController {
             UIApplication.shared.openURL(NSURL(string: "facetime://\(ss)") as! URL)
 
             
-            
+            speakThis(sentence: "Video Call")
+
             
         } else if sender.tag == 2 {
-            print("Video-22222")
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey2")
             
@@ -445,10 +538,10 @@ class ContactVC: UIViewController {
             UIApplication.shared.openURL(NSURL(string: "facetime://\(ss)") as! URL)
 
             
-            
+            speakThis(sentence: "Video Call")
+
             
         } else if sender.tag == 3 {
-            print("Video-33333")
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey3")
             
@@ -457,66 +550,101 @@ class ContactVC: UIViewController {
             
             UIApplication.shared.openURL(NSURL(string: "facetime://\(ss)") as! URL)
 
-            
+            speakThis(sentence: "Video Call")
+
             
         }
     }
     
     @IBAction func actionForShareLocationUser(_ sender: UIButton) {
+        
+//        guard let locationDEE = latestLocation else {
+//                print("Location not available")
+//                return
+//            }
+//
+//            let latitude = locationDEE.coordinate.latitude
+//            let longitude = locationDEE.coordinate.longitude
+//
+//            print("Latitude: \(latitude), Longitude: \(longitude)")
+        
+        let locationManager = CLLocationManager()
+            locationManager.delegate = self
+            locationManager.requestWhenInUseAuthorization()
+            locationManager.startUpdatingLocation()
+            
+            // Retrieve the current location coordinates
+            guard let locationDEE = locationManager.location?.coordinate else {
+                print("Unable to retrieve location coordinates")
+                return
+            }
+        
+        let latitude = locationDEE.latitude
+        let longitude = locationDEE.longitude
+        
         if sender.tag == 1 {
-            print("www-111111")
+            
+           
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey1")
             
             let ss = "\(phoneNumber ?? "23232323")"
-            
-            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help!"
+//            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, From CityGuide!"
+
+            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, the coordinates are Latitude: \(latitude), Longitude: \(longitude)! Also you can click here http://maps.apple.com/maps?ll=\(latitude),\(longitude)"
             let strURL = sms.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
             UIApplication.shared.open(URL(string: strURL)!, options: [:], completionHandler: nil)
             
             
-            
+            speakThis(sentence: "share location to the contact")
+
             
             
         } else if sender.tag == 2 {
-            print("wwww-22222")
+            
+            
             
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey2")
             
             let ss = "\(phoneNumber ?? "23232323")"
-            
-            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help!"
+//            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, From CityGuide!"
+
+            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, the coordinates are Latitude: \(latitude), Longitude: \(longitude)! Also you can click here http://maps.apple.com/maps?ll=\(latitude),\(longitude)"
             let strURL = sms.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
             UIApplication.shared.open(URL(string: strURL)!, options: [:], completionHandler: nil)
             
-            
+            speakThis(sentence: "share location to the contact")
+
             
             
             
         } else if sender.tag == 3 {
-            print("www-33333")
+            
+          
             
             let phoneNumber = userDefaults.string(forKey: "myContactUserNumberKey3")
             
             let ss = "\(phoneNumber ?? "23232323")"
             
             
-                   
-            
-            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help!"
+            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, the coordinates are Latitude: \(latitude), Longitude: \(longitude)! Also you can click here http://maps.apple.com/maps?ll=\(latitude),\(longitude)"
+//            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, the coordinates are Latitude: \(latitude), Longitude: \(longitude)!"
+
+//            let sms = "sms:\(ss)&body= Hi, I'm stuck at this location. Kindly help, From CityGuide!"
             let strURL = sms.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
             UIApplication.shared.open(URL(string: strURL)!, options: [:], completionHandler: nil)
             
             
-            
+            speakThis(sentence: "share location to the contact")
+
             
             
         }
     }
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-            guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
-            print("locations = \(locValue.latitude) \(locValue.longitude)")
-        }
+//    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+//            guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
+//            print("locations =========== \(locValue.latitude) \(locValue.longitude)")
+//        }
 }

@@ -1,5 +1,6 @@
 //
 //  SearchResultsVC.swift
+
 //  CityGuide
 //
 //  Created by Studentadm on 11/24/21.
@@ -42,6 +43,7 @@ class SearchResultsVC: UITableViewController, UISearchControllerDelegate {
         for i in values{
             if !locations.contains(i){
                 locations.append(i)
+
             }
         }
         
@@ -77,6 +79,8 @@ class SearchResultsVC: UITableViewController, UISearchControllerDelegate {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if isFiltereing{
+            
+           
             return Filteredlocations.count
         }
         return locations.count
@@ -86,6 +90,7 @@ class SearchResultsVC: UITableViewController, UISearchControllerDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         if isFiltereing{
             cell.textLabel?.text = Filteredlocations[indexPath.row]
+
         }
         else{
             cell.textLabel?.text = locations[indexPath.row]
